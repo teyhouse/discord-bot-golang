@@ -34,6 +34,7 @@ func main() {
 	}
 
 	router := discord.NewRouter(client, cfg, log, nil)
+	router.RegisterPublicCommand("ping")
 	if err := router.RegisterCommands(); err != nil {
 		log.Error("command registration failed", "err", err)
 		os.Exit(1)

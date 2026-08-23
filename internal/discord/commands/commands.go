@@ -18,6 +18,10 @@ var Commands = []*discordgo.ApplicationCommand{
 		Name:        "whisper",
 		Description: "Sends a private message only you can see",
 	},
+	{
+		Name:        "summary",
+		Description: "Short overview of the last 20 messages in this channel",
+	},
 }
 
 // PingHandler responds publicly with "Pong".

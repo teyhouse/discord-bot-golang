@@ -37,6 +37,7 @@ func NewRouter(client *Client, cfg *config.Config, logger *slog.Logger, checker 
 		cmdHandlers: map[string]middleware.HandlerFunc{
 			"ping":    commands.PingHandler,
 			"whisper": commands.WhisperHandler,
+			"summary": commands.SummaryHandler,
 		},
 		public: make(map[string]struct{}),
 	}

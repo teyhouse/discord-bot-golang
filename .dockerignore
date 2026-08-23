@@ -1,0 +1,14 @@
+.git
+.env
+.env.example
+data/
+bot
+bin/
+.opencode/
+.github/
+README.md
+design.md
+renovate.json
+Makefile
+Dockerfile
+.dockerignore

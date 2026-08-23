@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# bot binary and runtime state
+/bot
+data/
+.opencode/

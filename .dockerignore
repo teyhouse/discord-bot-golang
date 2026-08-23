@@ -1,5 +1,6 @@
 .git
 .env
+!.env
 .env.example
 data/
 bot
@@ -11,4 +12,5 @@ design.md
 renovate.json
 Makefile
 Dockerfile
+!Dockerfile-dev
 .dockerignore

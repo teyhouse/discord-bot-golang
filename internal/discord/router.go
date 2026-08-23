@@ -45,9 +45,12 @@ func NewRouter(client *Client, cfg *config.Config, logger *slog.Logger, checker 
 // RegisterCommands creates all guild-scoped slash commands so they appear
 // immediately after startup.
 func (r *Router) RegisterCommands() error {
+	appID, err := r.client.ApplicationID()
+	if err != nil {
+		return err
+	}
 	for _, cmd := range commands.Commands {
-		created, err := r.client.Session().ApplicationCommandCreate(
-			r.client.Session().State.User.ID, r.config.GuildID, cmd)
+		created, err := r.client.Session().ApplicationCommandCreate(appID, r.config.GuildID, cmd)
 		if err != nil {
 			return fmt.Errorf("discord: registering command %q: %w", cmd.Name, err)
 		}

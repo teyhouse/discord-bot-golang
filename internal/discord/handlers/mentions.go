@@ -19,9 +19,22 @@ func MentionHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !mentionsBot(s, m.Message) {
 		return
 	}
-	if _, err := s.ChannelMessageSendReply(m.ChannelID, Summarize(m.Content), m.Reference()); err != nil {
+	content := stripBotMention(m.Content, s.State.User.ID)
+	content = ReplaceMentions(content, m.Mentions)
+	if _, err := s.ChannelMessageSendReply(m.ChannelID, Summarize(content), m.Reference()); err != nil {
 		slog.Error("handlers: replying to mention failed", "err", err)
 	}
+}
+
+// stripBotMention removes every occurrence of the bot's own mention markup
+// (<@botID>, <@!botID>); what the author tagged is noise, only their actual
+// message matters.
+func stripBotMention(content string, botID string) string {
+	replacer := strings.NewReplacer(
+		"<@"+botID+">", "",
+		"<@!"+botID+">", "",
+	)
+	return strings.TrimSpace(replacer.Replace(content))
 }
 
 // mentionsBot reports whether one of the message's direct mentions is the bot.
@@ -35,6 +48,17 @@ func mentionsBot(s *discordgo.Session, m *discordgo.Message) bool {
 		}
 	}
 	return false
+}
+
+// ReplaceMentions rewrites raw mention markup (<@id>, <@!id>) to readable
+// @usernames so summaries show who was tagged. Unknown mention forms are
+// left untouched.
+func ReplaceMentions(content string, mentions []*discordgo.User) string {
+	for _, u := range mentions {
+		content = strings.ReplaceAll(content, "<@!"+u.ID+">", "@"+u.Username)
+		content = strings.ReplaceAll(content, "<@"+u.ID+">", "@"+u.Username)
+	}
+	return content
 }
 
 // Summarize strips markdown, truncates to maxSummaryLen and prefixes the

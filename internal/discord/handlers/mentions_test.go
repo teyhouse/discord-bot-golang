@@ -3,6 +3,8 @@ package handlers
 import (
 	"strings"
 	"testing"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 func TestSummarizeTruncatesAndPrefixes(t *testing.T) {
@@ -19,6 +21,42 @@ func TestSummarizeStripsMarkdown(t *testing.T) {
 	got := Summarize("**bold** `code` ~~gone~~ # header\n> quote _it_")
 	want := "Summary: bold code gone header quote it"
 	if got != want {
+		t.Errorf("Summarize = %q, want %q", got, want)
+	}
+}
+
+func TestReplaceMentions(t *testing.T) {
+	mentions := []*discordgo.User{
+		{ID: "123", Username: "alice"},
+	}
+	got := ReplaceMentions("<@123> and <@!123> ping <@999>", mentions)
+	want := "@alice and @alice ping <@999>"
+	if got != want {
+		t.Errorf("ReplaceMentions = %q, want %q", got, want)
+	}
+}
+
+func TestSummarizeWithMentionThenStrip(t *testing.T) {
+	content := ReplaceMentions("<@123> **Interaction Test**", []*discordgo.User{{ID: "123", Username: "alice"}})
+	if got, want := Summarize(content), "Summary: @alice Interaction Test"; got != want {
+		t.Errorf("Summarize = %q, want %q", got, want)
+	}
+}
+
+func TestStripBotMention(t *testing.T) {
+	got := stripBotMention("<@123> hello there", "123")
+	if want := "hello there"; got != want {
+		t.Errorf("stripBotMention = %q, want %q", got, want)
+	}
+	got = stripBotMention("<@!123>hello<@123>", "123")
+	if want := "hello"; got != want {
+		t.Errorf("stripBotMention = %q, want %q", got, want)
+	}
+}
+
+func TestSummarizeSkipsBotTag(t *testing.T) {
+	content := stripBotMention("<@123> **Interaction Test**", "123")
+	if got, want := Summarize(content), "Summary: Interaction Test"; got != want {
 		t.Errorf("Summarize = %q, want %q", got, want)
 	}
 }

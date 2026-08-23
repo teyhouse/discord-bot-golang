@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -17,6 +18,10 @@ type Client struct {
 	session *discordgo.Session
 	config  *config.Config
 	logger  *slog.Logger
+
+	applicationID   string
+	applicationOnce sync.Once
+	applicationErr  error
 }
 
 // NewClient creates a discordgo session with the intents required by the
@@ -47,6 +52,22 @@ func (c *Client) Start(ctx context.Context) error {
 
 	<-ctx.Done()
 	return c.Stop()
+}
+
+// ApplicationID returns the bot's application ID, resolved over REST from
+// the token alone. Unlike Session.State.User this works before the gateway
+// connection is open. For bot applications the user ID and application ID
+// are identical. The result is fetched once and cached.
+func (c *Client) ApplicationID() (string, error) {
+	c.applicationOnce.Do(func() {
+		u, err := c.session.User("@me")
+		if err != nil {
+			c.applicationErr = fmt.Errorf("discord: fetching bot identity: %w", err)
+			return
+		}
+		c.applicationID = u.ID
+	})
+	return c.applicationID, c.applicationErr
 }
 
 // Stop closes the underlying session. It is safe to call multiple times.

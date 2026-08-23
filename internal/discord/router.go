@@ -24,10 +24,11 @@ type Router struct {
 }
 
 // NewRouter builds a router over an unstarted client. checker may be nil,
-// which disables permission checks (same as an empty whitelist).
+// in which case a whitelist checker over the configured user IDs is used
+// (an empty WHITELISTED_USER_IDS yields public mode).
 func NewRouter(client *Client, cfg *config.Config, logger *slog.Logger, checker middleware.PermissionChecker) *Router {
 	if checker == nil {
-		checker = middleware.NewWhitelistChecker(nil)
+		checker = PermissionCheckerFor(cfg)
 	}
 	return &Router{
 		client:  client,
@@ -38,9 +39,17 @@ func NewRouter(client *Client, cfg *config.Config, logger *slog.Logger, checker 
 			"ping":    commands.PingHandler,
 			"whisper": commands.WhisperHandler,
 			"summary": commands.SummaryHandler,
+			"pn":      commands.PNHandler,
 		},
 		public: make(map[string]struct{}),
 	}
+}
+
+// PermissionCheckerFor selects the permission model for a configuration:
+// an exact whitelist of the configured user IDs. An empty whitelist
+// produces a checker that allows everyone (public bot).
+func PermissionCheckerFor(cfg *config.Config) middleware.PermissionChecker {
+	return middleware.NewWhitelistChecker(cfg.WhitelistedUsers)
 }
 
 // RegisterCommands creates all guild-scoped slash commands so they appear
@@ -80,7 +89,7 @@ func (r *Router) onInteraction(s *discordgo.Session, i *discordgo.InteractionCre
 		handler(s, i)
 		return
 	}
-	middleware.WithPermissionCheck(r.checker, handler)(s, i)
+	middleware.WithPermissionCheck(r.checker, name, handler)(s, i)
 }
 
 // RegisterPublicCommand opts a registered command out of the permission check.

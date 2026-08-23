@@ -33,7 +33,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	router := discord.NewRouter(client, cfg, log, nil)
+	for _, id := range cfg.WhitelistedUsers {
+		if !isSnowflake(id) {
+			log.Warn("config: whitelist entry does not look like a Discord user ID (snowflakes are numeric, no leading zero)", "entry", id)
+		}
+	}
+	log.Debug("config: effective whitelist", "public_commands", []string{"ping"}, "whitelisted_users", cfg.WhitelistedUsers)
+
+	router := discord.NewRouter(client, cfg, log, discord.PermissionCheckerFor(cfg))
 	router.RegisterPublicCommand("ping")
 	if err := router.RegisterCommands(); err != nil {
 		log.Error("command registration failed", "err", err)
@@ -64,4 +71,18 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("bot stopped cleanly")
+}
+
+// isSnowflake reports whether id looks like a Discord snowflake ID:
+// digits only, no leading zero.
+func isSnowflake(id string) bool {
+	if id == "" || (len(id) > 1 && id[0] == '0') {
+		return false
+	}
+	for _, r := range id {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }

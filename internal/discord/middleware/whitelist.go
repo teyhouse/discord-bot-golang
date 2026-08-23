@@ -42,13 +42,20 @@ func (w *WhitelistChecker) Allowed(userID string) bool {
 type HandlerFunc func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
 // WithPermissionCheck wraps next so it only runs when checker allows the
-// invoking member. Denied users get an ephemeral notice.
-func WithPermissionCheck(checker PermissionChecker, next HandlerFunc) HandlerFunc {
+// invoking member. Denied users get an ephemeral notice. Every decision is
+// logged at Debug level with the command name for traceability.
+func WithPermissionCheck(checker PermissionChecker, command string, next HandlerFunc) HandlerFunc {
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Member == nil || i.Member.User == nil || !checker.Allowed(i.Member.User.ID) {
+		userID := ""
+		if i.Member != nil && i.Member.User != nil {
+			userID = i.Member.User.ID
+		}
+		if !checker.Allowed(userID) {
+			slog.Debug("middleware: access denied", "command", command, "user_id", userID)
 			Respond(s, i, "Not authorized", true)
 			return
 		}
+		slog.Debug("middleware: access granted", "command", command, "user_id", userID)
 		next(s, i)
 	}
 }

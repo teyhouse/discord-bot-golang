@@ -4,7 +4,7 @@ A modular Discord bot template written in Go, built on [bwmarrin/discordgo](http
 
 ## Features
 
-- Slash commands registered guild-scoped on startup for immediate availability: `ping`, `whisper`, and a whitelisted `summary` that lists the last 20 channel messages (bot messages and content-less ones excluded, each cut to 15 characters), answered ephemerally
+- Slash commands registered guild-scoped on startup for immediate availability: public `ping`, whitelisted `whisper` and `pn` (sends the invoker a direct message), and whitelisted `summary` that lists the last 20 channel messages (bot messages and content-less ones excluded, each cut to 15 characters), answered ephemerally
 - Optional whitelist permission middleware for slash commands
 - Reaction watcher: scans the configured channel every 30 seconds and replies "I saw that!" to messages from the last 5 minutes that have an eyes reaction. Processed message IDs are persisted to daily JSON files under `data/` so duplicates are also suppressed across restarts. Files older than two days are pruned automatically.
 - Mention handler: replies to direct @mentions of the bot with a truncated, markdown-stripped summary of the message

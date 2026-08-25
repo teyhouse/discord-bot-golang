@@ -43,26 +43,31 @@ type HandlerFunc func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
 // WithPermissionCheck wraps next so it only runs when checker allows the
 // invoking member. Denied users get an ephemeral notice. Every decision is
-// logged at Debug level with the command name for traceability.
-func WithPermissionCheck(checker PermissionChecker, command string, next HandlerFunc) HandlerFunc {
+// logged at Debug level with the command name for traceability. A nil
+// logger falls back to the package-level default.
+func WithPermissionCheck(checker PermissionChecker, log *slog.Logger, command string, next HandlerFunc) HandlerFunc {
+	if log == nil {
+		log = slog.Default()
+	}
 	return func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		userID := ""
 		if i.Member != nil && i.Member.User != nil {
 			userID = i.Member.User.ID
 		}
 		if !checker.Allowed(userID) {
-			slog.Debug("middleware: access denied", "command", command, "user_id", userID)
-			Respond(s, i, "Not authorized", true)
+			log.Debug("middleware: access denied", "command", command, "user_id", userID)
+			Respond(log, s, i, "Not authorized", true)
 			return
 		}
-		slog.Debug("middleware: access granted", "command", command, "user_id", userID)
+		log.Debug("middleware: access granted", "command", command, "user_id", userID)
 		next(s, i)
 	}
 }
 
 // Respond replies to an interaction with content; ephemeral makes it
-// visible only to the invoking user.
-func Respond(s *discordgo.Session, i *discordgo.InteractionCreate, content string, ephemeral bool) {
+// visible only to the invoking user. A nil logger falls back to the
+// package-level default.
+func Respond(log *slog.Logger, s *discordgo.Session, i *discordgo.InteractionCreate, content string, ephemeral bool) {
 	if s == nil || i == nil {
 		slog.Error("middleware: cannot respond without session or interaction")
 		return
@@ -78,6 +83,13 @@ func Respond(s *discordgo.Session, i *discordgo.InteractionCreate, content strin
 			Flags:   flags,
 		},
 	}); err != nil {
-		slog.Error("middleware: interaction respond failed", "err", err)
+		(logOrDefault(log)).Error("middleware: interaction respond failed", "err", err)
 	}
+}
+
+func logOrDefault(log *slog.Logger) *slog.Logger {
+	if log == nil {
+		return slog.Default()
+	}
+	return log
 }

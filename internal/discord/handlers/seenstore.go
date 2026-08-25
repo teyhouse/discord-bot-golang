@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -18,7 +19,7 @@ type SeenStore struct {
 	dir string
 
 	mu  sync.Mutex
-	day string          // YYYY-MM-DD of ids
+	day string              // YYYY-MM-DD of ids
 	ids map[string]struct{} // message IDs seen today or yesterday
 }
 
@@ -40,6 +41,7 @@ func (s *SeenStore) Seen(messageID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.rotateLocked(time.Now()); err != nil {
+		slog.Error("handlers: seen state rotation failed; assuming unseen", "err", err)
 		return false
 	}
 	_, ok := s.ids[messageID]

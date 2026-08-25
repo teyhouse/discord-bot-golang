@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.27.0 AS builder
+FROM golang:1.26 AS builder
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -18,5 +18,8 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifi
 
 USER 65532:65532
 WORKDIR /data
+
+# State lives directly in the mounted volume, not a subdirectory of it.
+ENV DATA_DIR=/data
 
 ENTRYPOINT ["/bot"]

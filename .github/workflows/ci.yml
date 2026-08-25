@@ -36,3 +36,6 @@ jobs:
 
       - name: Test
         run: go test -race -shuffle=on ./...
+
+      - name: Vulnerability check
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

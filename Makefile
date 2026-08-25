@@ -16,8 +16,9 @@ run:
 build:
 	go build -o bot ./cmd/bot
 
-# Dev-only: builds the local .env into the image; never push it.
+# Dev convenience: same production image, config injected from .env at run
+# time so secrets never enter an image layer.
 dev:
-	docker build -f Dockerfile-dev -t discord-bot:dev .
+	docker build -t discord-bot .
 	@docker rm discord-bot-dev > /dev/null 2>&1 || true
-	docker run --rm --name discord-bot-dev discord-bot:dev
+	docker run --rm --name discord-bot-dev --env-file .env discord-bot

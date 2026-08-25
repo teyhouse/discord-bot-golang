@@ -1,10 +1,14 @@
 # discord-bot-golang
 
-A modular Discord bot template written in Go, built on [bwmarrin/discordgo](https://github.com/bwmarrin/discordgo). It ships with two slash commands (ping, whisper), a reaction watcher that replies to recent messages carrying an eyes reaction, and a mention handler that summarizes messages the bot is tagged in.
+[![ci](https://github.com/teyhouse/discord-bot-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/teyhouse/discord-bot-golang/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+A modular Discord bot template written in Go, built on [bwmarrin/discordgo](https://github.com/bwmarrin/discordgo). It ships with four slash commands (`ping`, `whisper`, `summary`, `pn`), a reaction watcher that replies to recent messages carrying an eyes reaction, and a mention handler that summarizes messages the bot is tagged in.
 
 ## Features
 
-- Slash commands registered guild-scoped on startup for immediate availability: public `ping`, whitelisted `whisper` and `pn` (sends the invoker a direct message), and whitelisted `summary` that lists the last 20 channel messages (bot messages and content-less ones excluded, each cut to 15 characters), answered ephemerally
+- Slash commands registered guild-scoped on startup for immediate availability: public `ping`, whitelisted `whisper`, `pn` (sends the invoker a direct message) and `summary` (lists the last 20 channel messages, bot messages and content-less ones excluded, each cut to 15 characters, answered ephemerally)
 - Optional whitelist permission middleware for slash commands
 - Reaction watcher: scans the configured channel every 30 seconds and replies "I saw that!" to messages from the last 5 minutes that have an eyes reaction. Processed message IDs are persisted to daily JSON files under `data/` so duplicates are also suppressed across restarts. Files older than two days are pruned automatically.
 - Mention handler: replies to direct @mentions of the bot with a truncated, markdown-stripped summary of the message
@@ -12,13 +16,17 @@ A modular Discord bot template written in Go, built on [bwmarrin/discordgo](http
 - pprof endpoint on `127.0.0.1:6060` for local profiling
 - Graceful shutdown on SIGINT/SIGTERM
 
+For design decisions and internals see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## How it works
 
 The entry point in `cmd/bot/main.go` is wiring only: it loads configuration, builds the logger, creates the Discord client, registers commands and handlers through the router, starts the reaction watcher goroutine, then blocks until the context is cancelled by an OS signal.
 
 All Discord logic lives under `internal/`. The client owns session lifecycle and intents. The router maps command names to handlers and dispatches interactions. Command handlers, event handlers, and the permission middleware are separate packages, so new commands or handlers are added by extending their package and registering them in the router without touching the client.
 
-Configuration comes from the environment or a `.env` file at the project root. See `.env.example` for the available variables: `BOT_TOKEN`, `CHANNEL_ID` and `GUILD_ID` are required, `WHITELISTED_USER_IDS` and `LOG_LEVEL` are optional. Missing required values abort startup.
+Configuration comes from the environment or a `.env` file at the project root. See `.env.example` for the available variables: `BOT_TOKEN`, `CHANNEL_ID` and `GUILD_ID` are required, `WHITELISTED_USER_IDS`, `LOG_LEVEL` and `DATA_DIR` are optional. Missing required values abort startup.
+
+Commands that perform REST work before replying (`summary`, `pn`) acknowledge the interaction with a deferred response first, so they stay reliable within Discord's 3-second interaction window.
 
 The reaction watcher uses a single worker on a ticker rather than concurrent scans, which keeps API usage predictable and well inside rate limits. It fetches up to 100 recent messages per tick, filters by timestamp, checks reactions for the Unicode emoji U+1F440, and skips any message already present in the seen store.
 
@@ -34,13 +42,13 @@ To exempt a single command from the check while keeping it for others, call `rou
 
 Requirements:
 
-- Go 1.24 or newer (the toolchain is pinned via `go.mod`; staticcheck runs through the `tool` directive, no separate install needed)
+- Go 1.26 or newer (the toolchain is pinned via `go.mod`; staticcheck runs through the `tool` directive, no separate install needed)
 - govulncheck on your PATH for `make vuln`: `go install golang.org/x/vuln/cmd/govulncheck@latest`
 
 ```sh
 cp .env.example .env   # fill in token, channel and guild IDs
 make run               # go run ./cmd/bot
-make build             # binary at bin/bot
+make build             # binary at ./bot (add bin/ to your PATH if preferred)
 ```
 
 Common tasks:
@@ -52,12 +60,13 @@ Common tasks:
 | `make vuln` | govulncheck against reachable vulnerabilities |
 | `make run` | Run the bot directly |
 | `make build` | Build the `bot` binary in the project root |
+| `make dev` | Build the Docker image and run it with `--env-file .env` |
 
 ## Docker
 
 The Dockerfile builds a multi-stage image: a golang builder produces a fully static binary (`CGO_ENABLED=0`, stripped symbols, trimpath), and the runtime stage is `FROM scratch`. The resulting image contains only the binary, a CA certificate bundle for Discord's TLS endpoints, and nothing else: no shell, no libc, no package manager. It runs as UID 65532, non-root.
 
-Configuration is passed through environment variables (the config loader reads them natively; no `.env` needed in the container). Mount a directory at `/data` so reaction watcher state survives restarts:
+Configuration is passed through environment variables at run time; secrets never enter an image layer. Mount a directory at `/data` so reaction watcher state survives restarts (`DATA_DIR=/data` is preset in the image):
 
 ```sh
 docker build -t discord-bot .
@@ -67,8 +76,9 @@ docker run --rm \
   discord-bot
 ```
 
-The state directory defaults to `data` relative to the working directory and can be moved with the `DATA_DIR` environment variable in any deployment.
+Or use `make dev`, which builds the same image and injects your local `.env` at run time via `docker run --env-file`.
 
+> Note: a `Dockerfile-dev` that bakes `.env` into an image may exist in your local working copy. It is intentionally not tracked in git and must never be pushed or published.
 
 Discord prerequisites: create an application and bot account in the developer portal, enable the Message Content intent, invite it with the appropriate scopes, and grab channel/guild/user IDs via Developer Mode's Copy ID.
 
@@ -84,3 +94,10 @@ The intended workflow is to copy the project (or GitHub's "Use this template") a
 
 If you later find genuinely reusable pieces, such as the whitelist middleware or the seen store, promote them out of `internal/` into their own module at that point. Extract on second use rather than designing for reuse up front.
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
+
+## License
+
+[MIT](LICENSE)

@@ -26,7 +26,7 @@ func TestWhitelistCheckerEmptyIsPublic(t *testing.T) {
 func TestWithPermissionCheckDeniesEphemeral(t *testing.T) {
 	checker := NewWhitelistChecker([]string{"allowed"})
 	var called bool
-	wrapped := WithPermissionCheck(checker, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
+	wrapped := WithPermissionCheck(checker, nil, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
 
 	i := &discordgo.InteractionCreate{
 		Interaction: &discordgo.Interaction{
@@ -42,7 +42,7 @@ func TestWithPermissionCheckDeniesEphemeral(t *testing.T) {
 func TestWithPermissionCheckAllowsMember(t *testing.T) {
 	checker := NewWhitelistChecker([]string{"allowed"})
 	var called bool
-	wrapped := WithPermissionCheck(checker, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
+	wrapped := WithPermissionCheck(checker, nil, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
 
 	i := &discordgo.InteractionCreate{
 		Interaction: &discordgo.Interaction{
@@ -58,7 +58,7 @@ func TestWithPermissionCheckAllowsMember(t *testing.T) {
 func TestWithPermissionCheckNilMemberDenied(t *testing.T) {
 	checker := NewWhitelistChecker([]string{"allowed"})
 	var called bool
-	wrapped := WithPermissionCheck(checker, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
+	wrapped := WithPermissionCheck(checker, nil, "test", func(*discordgo.Session, *discordgo.InteractionCreate) { called = true })
 
 	wrapped(nil, &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{}})
 	if called {

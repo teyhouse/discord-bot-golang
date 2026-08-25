@@ -27,6 +27,9 @@ go.work.sum
 # env file
 .env
 
+# dev-only image that bakes local secrets; never publish
+/Dockerfile-dev
+
 # Editor/IDE
 # .idea/
 # .vscode/

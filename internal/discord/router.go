@@ -30,16 +30,17 @@ func NewRouter(client *Client, cfg *config.Config, logger *slog.Logger, checker 
 	if checker == nil {
 		checker = PermissionCheckerFor(cfg)
 	}
+	cmds := commands.New(logger)
 	return &Router{
 		client:  client,
 		config:  cfg,
 		logger:  logger,
 		checker: checker,
 		cmdHandlers: map[string]middleware.HandlerFunc{
-			"ping":    commands.PingHandler,
-			"whisper": commands.WhisperHandler,
-			"summary": commands.SummaryHandler,
-			"pn":      commands.PNHandler,
+			"ping":    cmds.PingHandler,
+			"whisper": cmds.WhisperHandler,
+			"summary": cmds.SummaryHandler,
+			"pn":      cmds.PNHandler,
 		},
 		public: make(map[string]struct{}),
 	}
@@ -89,7 +90,7 @@ func (r *Router) onInteraction(s *discordgo.Session, i *discordgo.InteractionCre
 		handler(s, i)
 		return
 	}
-	middleware.WithPermissionCheck(r.checker, name, handler)(s, i)
+	middleware.WithPermissionCheck(r.checker, r.logger, name, handler)(s, i)
 }
 
 // RegisterPublicCommand opts a registered command out of the permission check.

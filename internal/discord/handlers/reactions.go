@@ -17,12 +17,12 @@ const eyesEmoji = "\U0001F440"
 // ReactionWatcher periodically scans a channel for recent messages with an
 // :eyes: reaction and replies "I saw that!" once per message.
 type ReactionWatcher struct {
-	session    *discordgo.Session
-	channelID  string
-	interval   time.Duration
-	window     time.Duration
-	seen       *SeenStore
-	logger     *slog.Logger
+	session   *discordgo.Session
+	channelID string
+	interval  time.Duration
+	window    time.Duration
+	seen      *SeenStore
+	logger    *slog.Logger
 }
 
 // NewReactionWatcher creates a watcher polling every interval for messages

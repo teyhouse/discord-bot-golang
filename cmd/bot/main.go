@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
@@ -60,9 +61,25 @@ func main() {
 	watcher := handlers.NewReactionWatcher(client.Session(), cfg.ChannelID, 30*time.Second, seen, log)
 	go watcher.Start(ctx)
 
+	// The blank net/http/pprof import above registers its handlers on
+	// http.DefaultServeMux; nothing else ever registers there.
+	pprofSrv := &http.Server{
+		Addr:              "127.0.0.1:6060",
+		Handler:           nil,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 	go func() {
 		// pprof sidecar, internal only — never expose this port.
-		log.Error("pprof listener exited", "err", http.ListenAndServe("127.0.0.1:6060", nil))
+		if err := pprofSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("pprof listener exited", "err", err)
+		}
+	}()
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := pprofSrv.Shutdown(shutdownCtx); err != nil {
+			log.Warn("pprof shutdown failed", "err", err)
+		}
 	}()
 
 	log.Info("bot starting", "guild_id", cfg.GuildID, "channel_id", cfg.ChannelID, "whitelist_enabled", len(cfg.WhitelistedUsers) > 0)

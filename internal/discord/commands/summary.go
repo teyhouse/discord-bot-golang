@@ -7,7 +7,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/teyhouse/discord-bot-golang/internal/discord/handlers"
-	"github.com/teyhouse/discord-bot-golang/internal/discord/middleware"
 )
 
 // summaryMessageCount is how many recent messages the command inspects.
@@ -18,13 +17,18 @@ const summarySnippetLen = 15
 
 // SummaryHandler replies ephemerally with an overview of the last 20
 // messages in the channel, excluding the bot's own and content-less ones.
-func SummaryHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	msgs, err := s.ChannelMessages(i.ChannelID, summaryMessageCount, "", "", "")
-	if err != nil {
-		middleware.Respond(s, i, "Could not fetch messages", true)
+// The interaction is deferred first because the message fetch can exceed
+// Discord's 3-second window for direct responses.
+func (c *Registry) SummaryHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	if !c.deferEphemeral(s, i) {
 		return
 	}
-	middleware.Respond(s, i, buildSummary(msgs, s.State.User.ID), true)
+	msgs, err := s.ChannelMessages(i.ChannelID, summaryMessageCount, "", "", "")
+	if err != nil {
+		c.followUp(s, i, "Could not fetch messages")
+		return
+	}
+	c.followUp(s, i, buildSummary(msgs, s.State.User.ID))
 }
 
 // buildSummary renders a numbered list of author and a short content

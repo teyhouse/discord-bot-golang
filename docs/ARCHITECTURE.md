@@ -13,7 +13,7 @@ package here can be imported from another module: this is an application, not
 a library.
 
 **Module**: `github.com/teyhouse/discord-bot-golang`
-**Go**: 1.26+ (see `go.mod`; the Docker image tracks the same minor version)
+**Go**: 1.27+ (see `go.mod`; the Docker image tracks the same minor version)
 
 ## Layout
 

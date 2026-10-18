@@ -1,7 +1,7 @@
 # discord-bot-golang
 
 [![ci](https://github.com/teyhouse/discord-bot-golang/actions/workflows/ci.yml/badge.svg)](https://github.com/teyhouse/discord-bot-golang/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A modular Discord bot template written in Go, built on [bwmarrin/discordgo](https://github.com/bwmarrin/discordgo). It ships with four slash commands (`ping`, `whisper`, `summary`, `pn`), a reaction watcher that replies to recent messages carrying an eyes reaction, and a mention handler that summarizes messages the bot is tagged in.
@@ -42,7 +42,7 @@ To exempt a single command from the check while keeping it for others, call `rou
 
 Requirements:
 
-- Go 1.26 or newer (the toolchain is pinned via `go.mod`; staticcheck runs through the `tool` directive, no separate install needed)
+- Go 1.27 or newer (the toolchain is pinned via `go.mod`; staticcheck runs through the `tool` directive, no separate install needed)
 - govulncheck on your PATH for `make vuln`: `go install golang.org/x/vuln/cmd/govulncheck@latest`
 
 ```sh
